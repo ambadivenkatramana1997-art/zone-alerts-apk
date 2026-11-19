@@ -6,11 +6,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Arrange project folders
-        run: |
-          mkdir -p app/src/main/java/com/zonealerts
-          mv MainActivity.java PollService.java app/src/main/java/com/zonealerts/
-          mv AndroidManifest.xml app/src/main/
-          mv app.gradle app/build.gradle
+   run: |
+    mkdir -p app/src/main/java/com/zonealerts app/src/main
+
+    mv MainActivity.java app/src/main/java/com/zonealerts/
+    mv PollService.java app/src/main/java/com/zonealerts/
+    mv AndroidManifest.xml app/src/main/
+    mv app.gradle app/build.gradle
+      
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
