@@ -1,25 +1,39 @@
-name: Build APK
-on: [push, workflow_dispatch]
+name: Build Zone Alerts APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Arrange project folders
-        run: |
-          mkdir -p app/src/main/java/com/zonealerts
-          mv MainActivity.java PollService.java app/src/main/java/com/zonealerts/
-          mv AndroidManifest.xml app/src/main/
-          mv app.gradle app/build.gradle
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
-      - uses: gradle/actions/setup-gradle@v4
+          java-version: '17'
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.7
-      - run: gradle assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
+          gradle-version: '8.9'
+      - name: Install Android SDK 34
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0"
+      - name: Build APK
+        run: gradle assembleDebug --no-daemon
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: ZoneAlerts-apk
+          name: ZoneAlerts-debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Release APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Zone Alerts Build ${{ github.run_number }}
+          files: app/build/outputs/apk/debug/app-debug.apk
