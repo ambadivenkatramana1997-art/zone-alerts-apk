@@ -138,6 +138,18 @@ class MainActivity : Activity() {
             toast("Telegram settings saved")
             refreshUi()
         })
+        add(root, button("Send Telegram test") {
+            Store.saveTelegram(this, tokenInput.text.toString(), chatInput.text.toString())
+            if (Store.telegramToken(this).isBlank() || Store.telegramChat(this).isBlank()) {
+                toast("Enter bot token and chat ID first")
+            } else {
+                toast("Sending Telegram test...")
+                Thread({
+                    Notif.sendTelegram(this, "Zone Alerts Android Telegram test")
+                    runOnUiThread { refreshUi() }
+                }, "TelegramTest").start()
+            }
+        })
         add(root, heading("Monitoring logs (latest 40)"))
         logsText = text("No logs yet", 12f).apply {
             typeface = android.graphics.Typeface.MONOSPACE
