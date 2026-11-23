@@ -65,6 +65,10 @@ object Notif {
             Store.log(c, "Telegram not configured: save bot token and chat ID")
             return
         }
+        if (!Regex("^[0-9]+:[A-Za-z0-9_-]+$").matches(token)) {
+            Store.log(c, "Telegram token format invalid: enter only the BotFather API token, not a URL or bot prefix")
+            return
+        }
         var connection: HttpURLConnection? = null
         try {
             connection = URL("https://api.telegram.org/bot$token/sendMessage").openConnection() as HttpURLConnection
@@ -81,9 +85,11 @@ object Notif {
             val result = try { JSONObject(response) } catch (_: Exception) { JSONObject() }
             val success = code in 200..299 && result.optBoolean("ok", false)
             val description = result.optString("description", "unknown response")
-            Store.log(c, if (success) "Telegram message sent" else "Telegram failed: HTTP $code ($description)")
+            val safeDescription = description.replace(token, "[redacted]")
+            Store.log(c, if (success) "Telegram message sent" else "Telegram failed: HTTP $code ($safeDescription)")
         } catch (e: Exception) {
-            Store.log(c, "Telegram error: ${e.javaClass.simpleName}: ${e.message ?: "unknown"}")
+            // Exception messages can contain the request URL (and bot token). Never log them.
+            Store.log(c, "Telegram network error: ${e.javaClass.simpleName}")
         } finally { connection?.disconnect() }
     }
 }
