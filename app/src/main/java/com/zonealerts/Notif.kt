@@ -61,7 +61,10 @@ object Notif {
     fun sendTelegram(c: Context, message: String) {
         val token = Store.telegramToken(c)
         val chat = Store.telegramChat(c)
-        if (token.isBlank() || chat.isBlank()) return
+        if (token.isBlank() || chat.isBlank()) {
+            Store.log(c, "Telegram not configured: save bot token and chat ID")
+            return
+        }
         var connection: HttpURLConnection? = null
         try {
             connection = URL("https://api.telegram.org/bot$token/sendMessage").openConnection() as HttpURLConnection
@@ -73,7 +76,12 @@ object Notif {
             val data = JSONObject().put("chat_id", chat).put("text", message).toString().toByteArray(Charsets.UTF_8)
             connection.outputStream.use { it.write(data) }
             val code = connection.responseCode
-            Store.log(c, if (code in 200..299) "Telegram message sent" else "Telegram failed: HTTP $code")
+            val response = (if (code in 200..299) connection.inputStream else connection.errorStream)
+                ?.bufferedReader()?.use { it.readText() } ?: ""
+            val result = try { JSONObject(response) } catch (_: Exception) { JSONObject() }
+            val success = code in 200..299 && result.optBoolean("ok", false)
+            val description = result.optString("description", "unknown response")
+            Store.log(c, if (success) "Telegram message sent" else "Telegram failed: HTTP $code ($description)")
         } catch (e: Exception) {
             Store.log(c, "Telegram error: ${e.javaClass.simpleName}: ${e.message ?: "unknown"}")
         } finally { connection?.disconnect() }
